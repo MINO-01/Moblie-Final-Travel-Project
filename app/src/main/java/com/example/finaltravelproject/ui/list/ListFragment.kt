@@ -32,9 +32,22 @@ class ListFragment : Fragment(R.layout.fragment_list) {
             dbHelper.insertRecord(TravelRecord(place = "부산 해운대", visitDate = "2026-06-20", memo = "바다 보면서 힐링", photoUri = null))
         }
 
-        // DB 데이터를 불러와 Adapter와 연결 (초기 화면 구성)
+        // DB 데이터를 불러와 Adapter와 연결
         val initialData = dbHelper.getAllRecords()
-        adapter = TravelRecordAdapter(initialData)
+        adapter = TravelRecordAdapter(initialData) { position, action ->
+            // 현재 리스트에서 클릭된 아이템의 데이터 가져오기
+            val record = dbHelper.getAllRecords()[position]
+
+            when (action) {
+                "수정" -> {
+                    // TODO: 수정 Activity로 이동하는 코드 구현
+                }
+                "삭제" -> {
+                    // 삭제 확인 다이얼로그 띄우기
+                    showDeleteDialog(record)
+                }
+            }
+        }
         rvTravelRecords.adapter = adapter
     }
 
@@ -45,5 +58,19 @@ class ListFragment : Fragment(R.layout.fragment_list) {
             val updatedList = dbHelper.getAllRecords()
             adapter.updateData(updatedList)
         }
+    }
+
+    private fun showDeleteDialog(record: TravelRecord) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("삭제 확인")
+            .setMessage("정말 삭제하시겠습니까?")
+            .setPositiveButton("확인") { _, _ ->
+                // 1. DB에서 해당 데이터 삭제
+                dbHelper.deleteRecord(record.no)
+                // 2. DB를 다시 조회하여 리스트 화면 즉시 갱신
+                adapter.updateData(dbHelper.getAllRecords())
+            }
+            .setNegativeButton("취소", null) // 취소 시 아무 동작 안 함
+            .show()
     }
 }
