@@ -1,5 +1,6 @@
 package com.example.finaltravelproject.ui.list
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
@@ -8,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.finaltravelproject.R
 import com.example.finaltravelproject.data.local.TravelDBHelper
 import com.example.finaltravelproject.domain.model.TravelRecord
+import com.example.finaltravelproject.ui.record.TravelRecordActivity
 
 class ListFragment : Fragment(R.layout.fragment_list) {
 
@@ -40,10 +42,11 @@ class ListFragment : Fragment(R.layout.fragment_list) {
 
             when (action) {
                 "수정" -> {
-                    // TODO: 수정 Activity로 이동하는 코드 구현
+                    val intent = Intent(requireContext(), TravelRecordActivity::class.java)
+                    intent.putExtra("RECORD_NO", record.no)
+                    startActivity(intent)
                 }
                 "삭제" -> {
-                    // 삭제 확인 다이얼로그 띄우기
                     showDeleteDialog(record)
                 }
             }
