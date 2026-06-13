@@ -16,13 +16,14 @@ class TravelDBHelper(context: Context) :
     companion object {
         // DB 기본 정보
         private const val DATABASE_NAME = "TravelRecord.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         // 테이블 및 컬럼 이름 상수화
         const val TABLE_NAME = "travel_record"
         const val COLUMN_NO = "no"
         const val COLUMN_PLACE = "place"
-        const val COLUMN_VISIT_DATE = "visit_date"
+        const val COLUMN_START_DATE = "start_date"
+        const val COLUMN_END_DATE = "end_date"
         const val COLUMN_MEMO = "memo"
         const val COLUMN_PHOTO_URI = "photo_uri"
     }
@@ -32,7 +33,8 @@ class TravelDBHelper(context: Context) :
             CREATE TABLE $TABLE_NAME (
                 `$COLUMN_NO` INTEGER PRIMARY KEY AUTOINCREMENT,
                 $COLUMN_PLACE TEXT NOT NULL,
-                $COLUMN_VISIT_DATE TEXT NOT NULL,
+                $COLUMN_START_DATE TEXT NOT NULL,
+                $COLUMN_END_DATE TEXT NOT NULL,
                 $COLUMN_MEMO TEXT,
                 $COLUMN_PHOTO_URI TEXT
             )
@@ -66,7 +68,8 @@ class TravelDBHelper(context: Context) :
             val db = this.writableDatabase
             val values = ContentValues().apply {
                 put(COLUMN_PLACE, record.place)
-                put(COLUMN_VISIT_DATE, record.visitDate)
+                put(COLUMN_START_DATE, record.startDate)
+                put(COLUMN_END_DATE, record.endDate)
                 put(COLUMN_MEMO, record.memo)
                 put(COLUMN_PHOTO_URI, record.photoUri)
             }
@@ -91,7 +94,8 @@ class TravelDBHelper(context: Context) :
             if (cursor.moveToFirst()) {
                 val noIndex = cursor.getColumnIndexOrThrow(COLUMN_NO)
                 val placeIndex = cursor.getColumnIndexOrThrow(COLUMN_PLACE)
-                val dateIndex = cursor.getColumnIndexOrThrow(COLUMN_VISIT_DATE)
+                val startDateIndex = cursor.getColumnIndexOrThrow(COLUMN_START_DATE)
+                val endDateIndex = cursor.getColumnIndexOrThrow(COLUMN_END_DATE)
                 val memoIndex = cursor.getColumnIndexOrThrow(COLUMN_MEMO)
                 val photoIndex = cursor.getColumnIndexOrThrow(COLUMN_PHOTO_URI)
 
@@ -99,7 +103,8 @@ class TravelDBHelper(context: Context) :
                     val record = TravelRecord(
                         no = cursor.getInt(noIndex),
                         place = cursor.getString(placeIndex),
-                        visitDate = cursor.getString(dateIndex),
+                        startDate = cursor.getString(startDateIndex),
+                        endDate = cursor.getString(endDateIndex),
                         memo = cursor.getString(memoIndex),
                         photoUri = cursor.getString(photoIndex)
                     )
@@ -122,7 +127,8 @@ class TravelDBHelper(context: Context) :
             val db = this.writableDatabase
             val values = ContentValues().apply {
                 put(COLUMN_PLACE, record.place)
-                put(COLUMN_VISIT_DATE, record.visitDate)
+                put(COLUMN_START_DATE, record.startDate)
+                put(COLUMN_END_DATE, record.endDate)
                 put(COLUMN_MEMO, record.memo)
                 put(COLUMN_PHOTO_URI, record.photoUri)
             }

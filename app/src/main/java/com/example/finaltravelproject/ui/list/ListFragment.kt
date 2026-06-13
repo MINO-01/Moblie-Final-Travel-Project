@@ -24,15 +24,14 @@ class ListFragment : Fragment(R.layout.fragment_list) {
         rvTravelRecords = view.findViewById(R.id.rv_travel_records)
         dbHelper = TravelDBHelper(requireContext())
 
+        val fabAdd = view.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fab_add)
+        fabAdd.setOnClickListener {
+            val intent = Intent(requireContext(), TravelRecordActivity::class.java)
+            startActivity(intent)
+        }
+
         // 리스트 레이아웃 매니저 설정
         rvTravelRecords.layoutManager = LinearLayoutManager(requireContext())
-
-        // 테스트용 더미 데이터 삽입
-        // 실제 데이터 입력 기능 구현 후 삭제 예정
-        if (dbHelper.getAllRecords().isEmpty()) {
-            dbHelper.insertRecord(TravelRecord(place = "제주도 한라산", visitDate = "2026-06-15", memo = "너무 힘들었지만 경치가 좋았다.", photoUri = null))
-            dbHelper.insertRecord(TravelRecord(place = "부산 해운대", visitDate = "2026-06-20", memo = "바다 보면서 힐링", photoUri = null))
-        }
 
         // DB 데이터를 불러와 Adapter와 연결
         val initialData = dbHelper.getAllRecords()

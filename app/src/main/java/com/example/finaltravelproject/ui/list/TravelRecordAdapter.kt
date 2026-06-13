@@ -44,7 +44,7 @@ class TravelRecordAdapter(
         // 데이터를 받아서 화면에 보여주는 역할
         fun bind(record: TravelRecord, position: Int, onContextMenuItemClicked: (Int, String) -> Unit) {
             tvPlace.text = record.place
-            tvVisitDate.text = record.visitDate
+            tvVisitDate.text = "${record.startDate} ~ ${record.endDate}"
 
             // 사진 URI가 있으면 띄우고, 없거나 오류가 나면 기본 갤러리 아이콘을 보여줌
             // 이미지를 못 불러와도 앱이 튕기지 않게 예외처리 함
