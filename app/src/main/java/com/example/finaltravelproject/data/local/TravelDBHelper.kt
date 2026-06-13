@@ -161,4 +161,16 @@ class TravelDBHelper(context: Context) :
         }
         return result
     }
+
+    // 전체 삭제
+    fun deleteAllRecords(): Int {
+        var result = 0
+        try {
+            val db = this.writableDatabase
+            result = db.delete(TABLE_NAME, null, null)
+        } catch (e: Exception) {
+            Log.e("TravelDBHelper", "전체 데이터 삭제 중 오류 발생", e)
+        }
+        return result
+    }
 }
