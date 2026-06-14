@@ -8,17 +8,17 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 import com.example.finaltravelproject.domain.model.TravelRecord
 
-// Room 라이브러리를 사용하지 않고 SQLiteOpenHelper를 상속받아 구현
+// Room 안 쓰고 SQLiteOpenHelper로 직접 구현
 // 앱 종료 후에도 데이터가 유지되도록 설계
 class TravelDBHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        // DB 기본 정보
+        // DB 기본 세팅
         private const val DATABASE_NAME = "TravelRecord.db"
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 3
 
-        // 테이블 및 컬럼 이름 상수화
+        // 테이블이랑 컬럼명 상수화
         const val TABLE_NAME = "travel_record"
         const val COLUMN_NO = "no"
         const val COLUMN_PLACE = "place"
@@ -26,9 +26,12 @@ class TravelDBHelper(context: Context) :
         const val COLUMN_END_DATE = "end_date"
         const val COLUMN_MEMO = "memo"
         const val COLUMN_PHOTO_URI = "photo_uri"
+        const val COLUMN_LATITUDE = "latitude"
+        const val COLUMN_LONGITUDE = "longitude"
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
+        // 테이블 만들 때 좌표 컬럼 추가
         val createTableQuery = """
             CREATE TABLE $TABLE_NAME (
                 `$COLUMN_NO` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +39,9 @@ class TravelDBHelper(context: Context) :
                 $COLUMN_START_DATE TEXT NOT NULL,
                 $COLUMN_END_DATE TEXT NOT NULL,
                 $COLUMN_MEMO TEXT,
-                $COLUMN_PHOTO_URI TEXT
+                $COLUMN_PHOTO_URI TEXT,
+                $COLUMN_LATITUDE REAL,
+                $COLUMN_LONGITUDE REAL
             )
         """.trimIndent()
 
@@ -44,22 +49,25 @@ class TravelDBHelper(context: Context) :
             db?.execSQL(createTableQuery)
             Log.d("TravelDBHelper", "테이블 생성 성공: $TABLE_NAME")
         } catch (e: Exception) {
-            // 앱의 비정상 종료를 막기 위한 기본 예외 처리
-            Log.e("TravelDBHelper", "테이블 생성 중 오류 발생", e)
+            // 앱 튕김 방지
+            Log.e("TravelDBHelper", "테이블 생성 오류", e)
         }
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
         try {
-            db?.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
-            onCreate(db)
+            // v3보다 낮으면 기존 데이터 안 날리고 좌표 컬럼만 추가
+            if (oldVersion < 3) {
+                db?.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN $COLUMN_LATITUDE REAL")
+                db?.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN $COLUMN_LONGITUDE REAL")
+            }
         } catch (e: Exception) {
-            Log.e("TravelDBHelper", "DB 업그레이드 중 오류 발생", e)
+            Log.e("TravelDBHelper", "DB 업그레이드 오류", e)
         }
     }
 
     // ==========================================
-    // CRUD 메서드 구현
+    // CRUD 구현
 
     // Create (Insert)
     fun insertRecord(record: TravelRecord): Long {
@@ -72,6 +80,10 @@ class TravelDBHelper(context: Context) :
                 put(COLUMN_END_DATE, record.endDate)
                 put(COLUMN_MEMO, record.memo)
                 put(COLUMN_PHOTO_URI, record.photoUri)
+
+                // 좌표값 있으면 같이 저장
+                record.latitude?.let { put(COLUMN_LATITUDE, it) }
+                record.longitude?.let { put(COLUMN_LONGITUDE, it) }
             }
             // insert 성공 시 삽입된 행의 ID 반환, 실패 시 -1 반환
             result = db.insert(TABLE_NAME, null, values)
@@ -98,23 +110,31 @@ class TravelDBHelper(context: Context) :
                 val endDateIndex = cursor.getColumnIndexOrThrow(COLUMN_END_DATE)
                 val memoIndex = cursor.getColumnIndexOrThrow(COLUMN_MEMO)
                 val photoIndex = cursor.getColumnIndexOrThrow(COLUMN_PHOTO_URI)
+                val latIndex = cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)
+                val lonIndex = cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE)
 
                 do {
+                    // 좌표는 null일 수 있어서 isNull 체크 필수
+                    val lat = if (cursor.isNull(latIndex)) null else cursor.getDouble(latIndex)
+                    val lon = if (cursor.isNull(lonIndex)) null else cursor.getDouble(lonIndex)
+
                     val record = TravelRecord(
                         no = cursor.getInt(noIndex),
                         place = cursor.getString(placeIndex),
                         startDate = cursor.getString(startDateIndex),
                         endDate = cursor.getString(endDateIndex),
                         memo = cursor.getString(memoIndex),
-                        photoUri = cursor.getString(photoIndex)
+                        photoUri = cursor.getString(photoIndex),
+                        latitude = lat,
+                        longitude = lon
                     )
                     recordList.add(record)
                 } while (cursor.moveToNext())
             }
         } catch (e: Exception) {
-            Log.e("TravelDBHelper", "전체 데이터 조회 중 오류 발생", e)
+            Log.e("TravelDBHelper", "조회 오류", e)
         } finally {
-            // 메모리 누수를 방지하기 위해 Cursor 해제
+            // 메모리 누수 방지용 커서 닫기
             cursor?.close()
         }
         return recordList
@@ -131,8 +151,12 @@ class TravelDBHelper(context: Context) :
                 put(COLUMN_END_DATE, record.endDate)
                 put(COLUMN_MEMO, record.memo)
                 put(COLUMN_PHOTO_URI, record.photoUri)
+
+                // 좌표 업데이트 (null이면 null로 덮어쓰기)
+                record.latitude?.let { put(COLUMN_LATITUDE, it) } ?: putNull(COLUMN_LATITUDE)
+                record.longitude?.let { put(COLUMN_LONGITUDE, it) } ?: putNull(COLUMN_LONGITUDE)
             }
-            // update 성공 시 영향을 받은 행의 개수 반환
+            // 성공하면 바뀐 행 개수 반환
             result = db.update(
                 TABLE_NAME,
                 values,
@@ -150,7 +174,6 @@ class TravelDBHelper(context: Context) :
         var result = 0
         try {
             val db = this.writableDatabase
-            // delete 성공 시 영향을 받은 행의 개수 반환
             result = db.delete(
                 TABLE_NAME,
                 "$COLUMN_NO = ?",
@@ -169,7 +192,7 @@ class TravelDBHelper(context: Context) :
             val db = this.writableDatabase
             result = db.delete(TABLE_NAME, null, null)
         } catch (e: Exception) {
-            Log.e("TravelDBHelper", "전체 데이터 삭제 중 오류 발생", e)
+            Log.e("TravelDBHelper", "전체 삭제 오류", e)
         }
         return result
     }

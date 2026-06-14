@@ -6,5 +6,7 @@ data class TravelRecord(
     val startDate: String,
     val endDate: String,
     val memo: String?,
-    val photoUri: String?
+    val photoUri: String?,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
