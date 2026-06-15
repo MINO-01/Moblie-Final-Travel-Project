@@ -42,46 +42,55 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
     // 지도 렌더링 끝나면 자동 실행
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
+
+        // 지도 제스처 활성화
+        googleMap?.uiSettings?.isZoomGesturesEnabled = true
+        googleMap?.uiSettings?.isScrollGesturesEnabled = true
+
         val dbHelper = TravelDBHelper(requireContext())
 
-        // DB에서 좌표(위도, 경도) 있는 기록만 뽑아냄
+        // 유효한 데이터만 필터링
         val records = dbHelper.getAllRecords().filter {
-            it.latitude != null && it.longitude != null
+            it.latitude != null && it.longitude != null && it.latitude != 0.0 && it.longitude != 0.0
         }
 
-        // GPS 데이터 있는 기록이 하나라도 있으면
         if (records.isNotEmpty()) {
-            // 화면에 마커 다 들어오게 영역 잡는 빌더
             val boundsBuilder = LatLngBounds.Builder()
 
             records.forEach { record ->
                 val position = LatLng(record.latitude!!, record.longitude!!)
                 val marker = googleMap?.addMarker(MarkerOptions().position(position).title(record.place))
                 marker?.tag = record
-
                 boundsBuilder.include(position)
             }
 
-            // 마커들 짤리지 않게 여백 주고 카메라 이동
-            val padding = 100
-            googleMap?.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding))
+            // 카메라 이동 로직
+            try {
+                if (records.size == 1) {
+                    val position = LatLng(records[0].latitude!!, records[0].longitude!!)
+                    googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15f))
+                } else {
+                    val padding = 150
+                    googleMap?.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding))
+                }
+            } catch (e: Exception) {
+                // 예외 발생 시 기본 좌표로 이동
+                val seoul = LatLng(37.5665, 126.9780)
+                googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(seoul, 12f))
+            }
 
+            // InfoWindow 설정
             googleMap?.setInfoWindowAdapter(object : GoogleMap.InfoWindowAdapter {
                 override fun getInfoWindow(marker: com.google.android.gms.maps.model.Marker): View? = null
 
                 override fun getInfoContents(marker: com.google.android.gms.maps.model.Marker): View {
-                    // 커스텀 레이아웃 불러오기
                     val view = layoutInflater.inflate(R.layout.item_map_info_window, null)
                     val ivThumbnail = view.findViewById<android.widget.ImageView>(R.id.iv_info_thumbnail)
                     val tvPlace = view.findViewById<android.widget.TextView>(R.id.tv_info_place)
 
-                    // 마커 태그에서 TravelRecord 꺼내기
                     val record = marker.tag as? TravelRecord
-
                     record?.let {
                         tvPlace.text = it.place
-
-                        // 사진 띄우기 (없거나 에러나면 갤러리 기본 아이콘)
                         if (!it.photoUri.isNullOrEmpty()) {
                             try {
                                 ivThumbnail.setImageURI(Uri.parse(it.photoUri))
@@ -96,23 +105,21 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
                 }
             })
 
-            // 말풍선 클릭 이벤트 (상세/수정 화면 이동)
+            // 마커 클릭 이동
             googleMap?.setOnInfoWindowClickListener { marker ->
                 val record = marker.tag as? TravelRecord
                 record?.let {
-                    // 리스트에서 누른 거랑 똑같이 RECORD_NO 담아서 넘김
                     val intent = Intent(requireContext(), TravelRecordActivity::class.java)
                     intent.putExtra("RECORD_NO", it.no)
                     startActivity(intent)
                 }
             }
         } else {
-            // 위치 정보 등록된 게 없으면 기본 화면(서울 시청) 띄움
+            // 데이터가 없을 때 기본 좌표
             val seoul = LatLng(37.5665, 126.9780)
             googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(seoul, 12.0f))
         }
 
-        // 지도 로딩 완료: 코루틴을 통해 0.5초 뒤 로딩 바 숨기기
         viewLifecycleOwner.lifecycleScope.launch {
             delay(500)
             progressBar.visibility = View.GONE
