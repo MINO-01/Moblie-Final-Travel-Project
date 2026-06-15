@@ -20,6 +20,7 @@ import com.example.finaltravelproject.R
 import com.example.finaltravelproject.data.local.TravelDBHelper
 import com.example.finaltravelproject.domain.model.TravelRecord
 import com.example.finaltravelproject.ui.record.TravelRecordActivity
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -195,6 +196,12 @@ class ListFragment : Fragment(R.layout.fragment_list) {
             .setPositiveButton("확인") { _, _ ->
                 dbHelper.deleteRecord(record.no)
                 loadDataAsync() // 삭제 후 리스트 새로고침
+
+                Snackbar.make(
+                    requireView(),
+                    "여행 기록이 삭제되었습니다.",
+                    Snackbar.LENGTH_SHORT
+                ).show()
             }
             .setNegativeButton("취소", null)
             .show()
@@ -208,6 +215,12 @@ class ListFragment : Fragment(R.layout.fragment_list) {
             .setPositiveButton("전체 삭제") { _, _ ->
                 dbHelper.deleteAllRecords()
                 loadDataAsync() // 삭제 후 리스트 새로고침
+
+                Snackbar.make(
+                    requireView(),
+                    "모든 여행 기록이 삭제되었습니다.",
+                    Snackbar.LENGTH_SHORT
+                ).show()
             }
             .setNegativeButton("취소", null)
             .show()
