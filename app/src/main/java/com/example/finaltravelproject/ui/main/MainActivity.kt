@@ -5,6 +5,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.finaltravelproject.R
+import com.example.finaltravelproject.ui.home.HomeFragment
 import com.example.finaltravelproject.ui.list.ListFragment
 import com.example.finaltravelproject.ui.map.MapFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -19,14 +20,18 @@ class MainActivity : AppCompatActivity() {
 
         bottomNavigationView = findViewById(R.id.bottom_navigation)
 
-        // 초기 화면 설정 (앱 실행 시 ListFragment 표시)
+        // 초기 화면 설정 (앱 실행 시 HomeFragment 표시)
         if (savedInstanceState == null) {
-            replaceFragment(ListFragment())
+            replaceFragment(HomeFragment())
         }
 
         // 하단 탭 클릭 시 화면 전환 로직
         bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
+                R.id.nav_home -> {
+                    replaceFragment(HomeFragment())
+                    true
+                }
                 R.id.nav_list -> {
                     replaceFragment(ListFragment())
                     true
@@ -51,16 +56,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 사용자가 기기의 뒤로 가기 버튼을 눌렀을 때의 동작을 제어.
-    // 지도 화면 등 다른 탭에 있을 때는 메인(리스트) 화면으로 돌아오고,
+    // 지도 화면 등 다른 탭에 있을 때는 메인 화면으로 돌아오고,
     // 이미 메인 화면일 때만 앱을 종료하도록 흐름을 제어
     private fun setupBackPressed() {
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // 현재 선택된 탭이 '리스트(메인)'가 아니라면, 리스트 탭으로 이동
-                if (bottomNavigationView.selectedItemId != R.id.nav_list) {
-                    bottomNavigationView.selectedItemId = R.id.nav_list
+                // 현재 선택된 탭이 홈 화면이 아니라면 홈 탭으로 이동
+                if (bottomNavigationView.selectedItemId != R.id.nav_home) {
+                    bottomNavigationView.selectedItemId = R.id.nav_home
                 } else {
-                    // 현재 선택된 탭이 '리스트'라면 앱 종료
+                    // 홈 화면인 상태에서 뒤로 가기 누르면 앱 종료
                     finish()
                 }
             }
