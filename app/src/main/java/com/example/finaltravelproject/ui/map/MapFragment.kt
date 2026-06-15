@@ -1,5 +1,7 @@
 package com.example.finaltravelproject.ui.map
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
@@ -7,6 +9,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.finaltravelproject.R
 import com.example.finaltravelproject.data.local.TravelDBHelper
+import com.example.finaltravelproject.domain.model.TravelRecord
+import com.example.finaltravelproject.ui.record.TravelRecordActivity
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -52,15 +56,56 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
 
             records.forEach { record ->
                 val position = LatLng(record.latitude!!, record.longitude!!)
+                val marker = googleMap?.addMarker(MarkerOptions().position(position).title(record.place))
+                marker?.tag = record
 
-                // 해당 좌표에 마커 꽂고 장소 이름을 타이틀로 달아줌
-                googleMap?.addMarker(MarkerOptions().position(position).title(record.place))
-                boundsBuilder.include(position) // 카메라 영역에 포함
+                boundsBuilder.include(position)
             }
 
             // 마커들 짤리지 않게 여백 주고 카메라 이동
             val padding = 100
             googleMap?.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding))
+
+            googleMap?.setInfoWindowAdapter(object : GoogleMap.InfoWindowAdapter {
+                override fun getInfoWindow(marker: com.google.android.gms.maps.model.Marker): View? = null
+
+                override fun getInfoContents(marker: com.google.android.gms.maps.model.Marker): View {
+                    // 커스텀 레이아웃 불러오기
+                    val view = layoutInflater.inflate(R.layout.item_map_info_window, null)
+                    val ivThumbnail = view.findViewById<android.widget.ImageView>(R.id.iv_info_thumbnail)
+                    val tvPlace = view.findViewById<android.widget.TextView>(R.id.tv_info_place)
+
+                    // 마커 태그에서 TravelRecord 꺼내기
+                    val record = marker.tag as? TravelRecord
+
+                    record?.let {
+                        tvPlace.text = it.place
+
+                        // 사진 띄우기 (없거나 에러나면 갤러리 기본 아이콘)
+                        if (!it.photoUri.isNullOrEmpty()) {
+                            try {
+                                ivThumbnail.setImageURI(Uri.parse(it.photoUri))
+                            } catch (e: Exception) {
+                                ivThumbnail.setImageResource(android.R.drawable.ic_menu_gallery)
+                            }
+                        } else {
+                            ivThumbnail.setImageResource(android.R.drawable.ic_menu_gallery)
+                        }
+                    }
+                    return view
+                }
+            })
+
+            // 말풍선 클릭 이벤트 (상세/수정 화면 이동)
+            googleMap?.setOnInfoWindowClickListener { marker ->
+                val record = marker.tag as? TravelRecord
+                record?.let {
+                    // 리스트에서 누른 거랑 똑같이 RECORD_NO 담아서 넘김
+                    val intent = Intent(requireContext(), TravelRecordActivity::class.java)
+                    intent.putExtra("RECORD_NO", it.no)
+                    startActivity(intent)
+                }
+            }
         } else {
             // 위치 정보 등록된 게 없으면 기본 화면(서울 시청) 띄움
             val seoul = LatLng(37.5665, 126.9780)
@@ -69,7 +114,6 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
 
         // 지도 로딩 완료: 코루틴을 통해 0.5초 뒤 로딩 바 숨기기
         viewLifecycleOwner.lifecycleScope.launch {
-            // TODO: 확인 후 삭제하거나 주석 처리
             delay(500)
             progressBar.visibility = View.GONE
         }
