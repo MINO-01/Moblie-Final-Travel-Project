@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.finaltravelproject.R
 import com.example.finaltravelproject.data.local.TravelDBHelper
 import com.example.finaltravelproject.ui.record.TravelRecordActivity
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,6 +22,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var tvTotalCount: TextView
     private lateinit var tvRecentPlace: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var btnGoMap: Button
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -29,6 +31,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         tvTotalCount = view.findViewById(R.id.tv_total_count)
         tvRecentPlace = view.findViewById(R.id.tv_recent_place)
         progressBar = view.findViewById(R.id.progress_bar_home)
+        btnGoMap = view.findViewById(R.id.btn_go_map)
+
+        btnGoMap.setOnClickListener {
+            val bottomNav = requireActivity().findViewById<BottomNavigationView>(R.id.bottom_navigation)
+            bottomNav.selectedItemId = R.id.nav_map
+        }
 
         val btnAdd = view.findViewById<Button>(R.id.btn_add_record)
         btnAdd.setOnClickListener {
@@ -60,8 +68,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             // 기록 있으면 제일 첫 번째(최신) 장소 띄워줌
             if (records.isNotEmpty()) {
                 tvRecentPlace.text = "최근 다녀온 곳: ${records[0].place}"
+                btnGoMap.visibility = View.VISIBLE
             } else {
+                // 데이터 없으면 없음 처리하고 버튼 숨김
                 tvRecentPlace.text = "최근 다녀온 곳: 없음"
+                btnGoMap.visibility = View.GONE
             }
 
             // 세팅 끝나면 로딩바 숨김
