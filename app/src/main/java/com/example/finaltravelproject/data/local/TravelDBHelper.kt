@@ -196,4 +196,50 @@ class TravelDBHelper(context: Context) :
         }
         return result
     }
+
+    // 검색어 포함된 기록 찾기
+    fun searchRecords(keyword: String): List<TravelRecord> {
+        val recordList = mutableListOf<TravelRecord>()
+        // %keyword% 형태로 검색어가 포함된 거 다 가져오기
+        val selectQuery = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_PLACE LIKE ? ORDER BY `$COLUMN_NO` DESC"
+        var cursor: Cursor? = null
+
+        try {
+            val db = this.readableDatabase
+            cursor = db.rawQuery(selectQuery, arrayOf("%$keyword%"))
+
+            if (cursor.moveToFirst()) {
+                val noIndex = cursor.getColumnIndexOrThrow(COLUMN_NO)
+                val placeIndex = cursor.getColumnIndexOrThrow(COLUMN_PLACE)
+                val startDateIndex = cursor.getColumnIndexOrThrow(COLUMN_START_DATE)
+                val endDateIndex = cursor.getColumnIndexOrThrow(COLUMN_END_DATE)
+                val memoIndex = cursor.getColumnIndexOrThrow(COLUMN_MEMO)
+                val photoIndex = cursor.getColumnIndexOrThrow(COLUMN_PHOTO_URI)
+                val latIndex = cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)
+                val lonIndex = cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE)
+
+                do {
+                    val lat = if (cursor.isNull(latIndex)) null else cursor.getDouble(latIndex)
+                    val lon = if (cursor.isNull(lonIndex)) null else cursor.getDouble(lonIndex)
+
+                    val record = TravelRecord(
+                        no = cursor.getInt(noIndex),
+                        place = cursor.getString(placeIndex),
+                        startDate = cursor.getString(startDateIndex),
+                        endDate = cursor.getString(endDateIndex),
+                        memo = cursor.getString(memoIndex),
+                        photoUri = cursor.getString(photoIndex),
+                        latitude = lat,
+                        longitude = lon
+                    )
+                    recordList.add(record)
+                } while (cursor.moveToNext())
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("TravelDBHelper", "검색 오류", e)
+        } finally {
+            cursor?.close()
+        }
+        return recordList
+    }
 }

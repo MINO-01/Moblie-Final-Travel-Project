@@ -9,4 +9,10 @@
         android:id="@+id/action_app_info"
         android:title="앱 정보"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_search"
+        android:title="검색"
+        android:icon="@android:drawable/ic_menu_search"
+        app:showAsAction="always"
+        app:actionViewClass="androidx.appcompat.widget.SearchView" />
 </menu>

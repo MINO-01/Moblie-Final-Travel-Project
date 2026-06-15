@@ -58,6 +58,48 @@ class ListFragment : Fragment(R.layout.fragment_list) {
         menuHost.addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 menuInflater.inflate(R.menu.option_menu, menu)
+
+                // SearchView 찾아서 리스너 달아주기
+                val searchItem = menu.findItem(R.id.action_search)
+                val searchView = searchItem?.actionView as? androidx.appcompat.widget.SearchView
+
+                searchView?.queryHint = "여행지 검색"
+                searchView?.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
+
+                    override fun onQueryTextSubmit(query: String?): Boolean {
+                        searchView.clearFocus()
+                        return false
+                    }
+
+                    override fun onQueryTextChange(newText: String?): Boolean {
+                        // 글자 입력할 때마다 실시간으로 반응
+                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                            // 검색어 비어있으면 전체 불러오고, 아니면 검색 함수 돌림
+                            val result = if (newText.isNullOrBlank()) {
+                                dbHelper.getAllRecords()
+                            } else {
+                                dbHelper.searchRecords(newText)
+                            }
+
+                            // UI 갱신은 다시 메인 스레드에서
+                            withContext(Dispatchers.Main) {
+                                currentRecords = result
+                                adapter.updateData(result)
+
+                                // 검색 결과 없으면 아까 만든 Empty State 뷰 재활용
+                                if (result.isEmpty()) {
+                                    rvTravelRecords.visibility = View.GONE
+                                    tvEmpty.visibility = View.VISIBLE
+                                    tvEmpty.text = if (newText.isNullOrBlank()) "아직 등록된 여행 기록이 없습니다." else "검색 결과가 없습니다."
+                                } else {
+                                    rvTravelRecords.visibility = View.VISIBLE
+                                    tvEmpty.visibility = View.GONE
+                                }
+                            }
+                        }
+                        return true
+                    }
+                })
             }
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
